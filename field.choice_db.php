@@ -25,7 +25,8 @@ class Field_choice_db {
         'choice_type',
         'default_value',
         'min_choices',
-        'max_choices'
+        'max_choices',
+        'separator'
     );
     public $plugin_return = 'merge';
 
@@ -38,19 +39,16 @@ class Field_choice_db {
      * @param	array
      * @return	string
      */
-    public function form_output($params, $entry_id, $field)
-    {
-        
-       
-        $choices = $this->_choices_to_array($params['custom']['choice_table_name'], $params['custom']['field_key'], $params['custom']['field_value'], $params['custom']['choice_where_params'], $params['custom']['choice_type'], $field->is_required);
+    public function form_output($params, $entry_id, $field) {
 
-        
-        
+        $choices = $this->_choices_to_array($params['custom']['choice_table_name'], $params['custom']['field_key'], $params['custom']['field_value'], $params['custom']['choice_where_params'], $params['custom']['choice_type'], $field->is_required, $params['custom']['separator']);
+
+
+
         // Only put in our brs for the admin
         $line_end = (defined('ADMIN_THEME')) ? '<br />' : null;
 
-        if ($params['custom']['choice_type'] == 'dropdown')
-        {
+        if ($params['custom']['choice_type'] == 'dropdown') {
             // -------------------------------
             // Dropdown
             // -------------------------------
@@ -65,44 +63,33 @@ class Field_choice_db {
             $value = (!$entry_id) ? $default_value : $params['value'];
 
             return form_dropdown($params['form_slug'], $choices, $value, 'id="' . $params['form_slug'] . '"');
-        }
-        else
-        {
+        } else {
             // -------------------------------
             // Checkboxes and Radio buttons
             // -------------------------------
             // Parse the value coming in.
             // If these are checkboxes, we need to put
             // the incoming data through some special processes
-            if ($params['custom']['choice_type'] == 'checkboxes' or $params['custom']['choice_type'] == 'multiselect')
-            {
+            if ($params['custom']['choice_type'] == 'checkboxes' or $params['custom']['choice_type'] == 'multiselect') {
                 // We may have an array from $_POST or a string
                 // from the saved form data in the case
                 // or checkboxes
-                if (is_string($params['value']))
-                {
+                if (is_string($params['value'])) {
                     $vals = explode("\n", $params['value']);
-                }
-                elseif (is_array($params['value']))
-                {
+                } elseif (is_array($params['value'])) {
                     $vals = $params['value'];
-                }
-                else
-                {
+                } else {
                     $vals = array();
                 }
 
                 // If we have an array of values, trim each one
-                if (is_array($vals))
-                {
-                    foreach ($vals as $k => $v)
-                    {
+                if (is_array($vals)) {
+                    foreach ($vals as $k => $v) {
                         $vals[$k] = trim($v);
                     }
                 }
                 //If It's a multiselect, then we can go out now.
-                if ($params['custom']['choice_type'] == 'multiselect')
-                {
+                if ($params['custom']['choice_type'] == 'multiselect') {
                     return form_multiselect($params['form_slug'] . '[]', $choices, $vals, 'id="' . $params['form_slug'] . '"');
                 }
             }
@@ -111,16 +98,12 @@ class Field_choice_db {
             // a input element.
             $return = null;
 
-            foreach ($choices as $choice_key => $choice)
-            {
-                if ($params['custom']['choice_type'] == 'radio')
-                {
+            foreach ($choices as $choice_key => $choice) {
+                if ($params['custom']['choice_type'] == 'radio') {
                     $selected = ($params['value'] == $choice_key) ? true : false;
 
                     $return .= '<label class="radio">' . form_radio($params['form_slug'], $this->format_choice($choice_key), $selected, $this->active_state($choice)) . '&nbsp;' . $this->format_choice($choice) . '</label>' . $line_end;
-                }
-                else
-                {
+                } else {
                     $selected = (in_array($choice_key, $vals)) ? true : false;
 
                     $return .= '<label class="checkbox">' . form_checkbox($params['form_slug'] . '[]', $this->format_choice($choice_key), $selected, 'id="' . $this->format_choice($choice_key) . '" ' . $this->active_state($choice)) . '&nbsp;' . $this->format_choice($choice) . '</label>' . $line_end;
@@ -143,17 +126,14 @@ class Field_choice_db {
      * @param 	string
      * @return 	string
      */
-    private function active_state($line)
-    {
+    private function active_state($line) {
         $line = trim($line);
 
-        if (!$line)
-        {
+        if (!$line) {
             return $line;
         }
 
-        if ($line{0} == '^')
-        {
+        if ($line{0} == '^') {
             return ' disabled="disabled" checked="checked"';
         }
     }
@@ -170,14 +150,10 @@ class Field_choice_db {
      * @param 	string
      * @return 	string
      */
-    private function format_choice($line)
-    {
-        if ($line{0} == '^')
-        {
+    private function format_choice($line) {
+        if ($line{0} == '^') {
             return substr($line, 1);
-        }
-        else
-        {
+        } else {
             return $line;
         }
     }
@@ -191,24 +167,20 @@ class Field_choice_db {
      * @param	array
      * @return	string
      */
-    public function pre_output($input, $data)
-    {
-       
-      $choices = $this->_choices_to_array($data['choice_table_name'], $data['field_key'], $data['field_value'], $data['choice_where_params'], $data['choice_type'], $data['is_required']);
+    public function pre_output($input, $data) {
+
+        $choices = $this->_choices_to_array($data['choice_table_name'], $data['field_key'], $data['field_value'], $data['choice_where_params'], $data['choice_type'], $data['is_required']);
 
         // Checkboxes?
-        if ($data['choice_type'] == 'checkboxes' || $data['choice_type'] == 'multiselect')
-        {
+        if ($data['choice_type'] == 'checkboxes' || $data['choice_type'] == 'multiselect') {
             $vals = explode("\n", $input);
 
             $this->CI->load->helper('html');
 
             $selected = array();
 
-            foreach ($vals as $v)
-            {
-                if (isset($choices[$v]))
-                {
+            foreach ($vals as $v) {
+                if (isset($choices[$v])) {
                     $selected[] = $choices[$v];
                 }
             }
@@ -216,12 +188,9 @@ class Field_choice_db {
             return ul($selected);
         }
 
-        if (isset($choices[$input]) and $input != '')
-        {
+        if (isset($choices[$input]) and $input != '') {
             return $choices[$input];
-        }
-        else
-        {
+        } else {
             return null;
         }
     }
@@ -231,35 +200,27 @@ class Field_choice_db {
     /**
      * Pre-save
      */
-    public function pre_save($input, $field)
-    {
+    public function pre_save($input, $field) {
         // We only need to do this for checkboxes
-        if (($field->field_data['choice_type'] == 'checkboxes' or $field->field_data['choice_type'] == 'multiselect') and is_array($input))
-        {
+        if (($field->field_data['choice_type'] == 'checkboxes' or $field->field_data['choice_type'] == 'multiselect') and is_array($input)) {
             // If we have any disabled checkboxes that have been diabled by
             // a ^ before it, then we need to go and find those and make sure
             // they are added in, because they will not be present in the post data
             $choices = explode("\n", $field->field_data['choice_data']);
 
-            foreach ($choices as $choice_line)
-            {
+            foreach ($choices as $choice_line) {
                 $choice_line = trim($choice_line);
 
-                if ($choice_line{0} == '^')
-                {
+                if ($choice_line{0} == '^') {
                     $input[] = substr($choice_line, 1);
                 }
             }
 
             // One per line
             return implode("\n", array_unique($input));
-        }
-        elseif (($field->field_data['choice_type'] == 'checkboxes' or $field->field_data['choice_type'] == 'multiselect') and !$input)
-        {
+        } elseif (($field->field_data['choice_type'] == 'checkboxes' or $field->field_data['choice_type'] == 'multiselect') and !$input) {
             return '';
-        }
-        else
-        {
+        } else {
             // If this is not a checkbox field, we are
             // just returning the value.
             return $input;
@@ -277,19 +238,15 @@ class Field_choice_db {
      * @param	object
      * @return	mixed - true or error string
      */
-    public function validate($value, $mode, $field)
-    {
-        if (($field->field_data['choice_type'] == 'checkboxes' or $field->field_data['choice_type'] == 'multiselect') and is_array($value))
-        {
+    public function validate($value, $mode, $field) {
+        if (($field->field_data['choice_type'] == 'checkboxes' or $field->field_data['choice_type'] == 'multiselect') and is_array($value)) {
             // Go through and count the number that are disabled
             $choices = explode("\n", $field->field_data['choice_data']);
 
-            foreach ($choices as $choice_line)
-            {
+            foreach ($choices as $choice_line) {
                 $choice_line = trim($choice_line);
 
-                if ($choice_line{0} == '^')
-                {
+                if ($choice_line{0} == '^') {
                     $value[] = substr($choice_line, 1);
                 }
             }
@@ -306,36 +263,28 @@ class Field_choice_db {
             // -------------------------------
 
             $min = (
-                isset($field->field_data['min_choices']) and is_numeric($field->field_data['min_choices'])) ? $field->field_data['min_choices'] : false;
+                    isset($field->field_data['min_choices']) and is_numeric($field->field_data['min_choices'])) ? $field->field_data['min_choices'] : false;
 
             $max = (
-                isset($field->field_data['max_choices']) and is_numeric($field->field_data['max_choices'])) ? $field->field_data['max_choices'] : false;
+                    isset($field->field_data['max_choices']) and is_numeric($field->field_data['max_choices'])) ? $field->field_data['max_choices'] : false;
 
             // Special case: are min/max the same? If so, let's just
             // match the number.
-            if ($max and $min and ($max == $min))
-            {
-                if ($total_selected != $max)
-                {
+            if ($max and $min and ($max == $min)) {
+                if ($total_selected != $max) {
                     return str_replace('{val}', $max, lang('streams:choice_db.must_select_num'));
                 }
-            }
-            else
-            {
+            } else {
                 // Min Choice
-                if (is_numeric($min))
-                {
-                    if ($min > $total_selected)
-                    {
+                if (is_numeric($min)) {
+                    if ($min > $total_selected) {
                         return str_replace('{val}', $min, lang('streams:choice_db.must_at_least'));
                     }
                 }
 
                 // Max Choice
-                if (is_numeric($max))
-                {
-                    if ($max < $total_selected)
-                    {
+                if (is_numeric($max)) {
+                    if ($max < $total_selected) {
                         return str_replace('{val}', $max, lang('streams:choice_db.must_max_num'));
                     }
                 }
@@ -357,11 +306,9 @@ class Field_choice_db {
      * @param	obj
      * @return	void
      */
-    public function field_assignment_construct($field, $stream)
-    {
+    public function field_assignment_construct($field, $stream) {
         // We need more room for checkboxes
-        if ($field->field_data['choice_type'] == 'checkboxes' || $field->field_data['choice_type'] == 'multiselect')
-        {
+        if ($field->field_data['choice_type'] == 'checkboxes' || $field->field_data['choice_type'] == 'multiselect') {
             $this->db_col_type = 'text';
         }
     }
@@ -378,30 +325,24 @@ class Field_choice_db {
      * @param	array
      * @return	array
      */
-    public function pre_output_plugin($input, $params)
-    {
-       
-         $options = $this->_choices_to_array($params['choice_table_name'], $params['field_key'], $params['field_value'], $params['choice_where_params'], $params['choice_type'], $params['is_required']);
+    public function pre_output_plugin($input, $params) {
+
+        $options = $this->_choices_to_array($params['choice_table_name'], $params['field_key'], $params['field_value'], $params['choice_where_params'], $params['choice_type'], $params['is_required']);
 
         // Checkboxes
-        if ($params['choice_type'] == 'checkboxes' || $params['choice_type'] == 'multiselect')
-        {
+        if ($params['choice_type'] == 'checkboxes' || $params['choice_type'] == 'multiselect') {
             $this->plugin_return = 'array';
 
             $values = explode("\n", $input);
 
             $return = array();
 
-            foreach ($values as $k => $v)
-            {
-                if (isset($options[$v]))
-                {
+            foreach ($values as $k => $v) {
+                if (isset($options[$v])) {
                     $return[$k]['value'] = $options[$v];
                     $return[$k]['value.key'] = $v; // legacy
                     $return[$k]['key'] = $v;
-                }
-                else
-                {
+                } else {
                     // We don't want undefined values
                     unset($values[$k]);
                 }
@@ -412,16 +353,13 @@ class Field_choice_db {
 
         $this->plugin_return = 'merge';
 
-        if (isset($options[$input]) and $input != '')
-        {
+        if (isset($options[$input]) and $input != '') {
             $choices['key'] = $input;
             $choices['val'] = $options[$input]; // legacy
             $choices['value'] = $options[$input];
 
             return $choices;
-        }
-        else
-        {
+        } else {
             return null;
         }
     }
@@ -435,16 +373,13 @@ class Field_choice_db {
      * @param	[string - value]
      * @return	string
      */
-    public function param_choice_table_name($value = null)
-    {
+    public function param_choice_table_name($value = null) {
         $tables = get_instance()->db->list_tables();
         $tables_dropdown = array();
 
-        foreach ($tables as $table)
-        {
+        foreach ($tables as $table) {
             $prefix = explode('_', $table);
-            if ($prefix[0] !== 'core')
-            {
+            if ($prefix[0] !== 'core') {
                 $tables_dropdown[$table] = $table;
             }
         }
@@ -464,13 +399,12 @@ class Field_choice_db {
      * @param	[string - value]
      * @return	string
      */
-    public function param_field_key($value = null)
-    {
+    public function param_field_key($value = null) {
         return form_input(array(
-            'name' => 'field_key',
-            'value' => !empty($value) ? $value : 'id',
-            'type' => 'text'
-        ));
+                    'name' => 'field_key',
+                    'value' => !empty($value) ? $value : 'id',
+                    'type' => 'text'
+                ));
     }
 
     // --------------------------------------------------------------------------
@@ -482,13 +416,12 @@ class Field_choice_db {
      * @param	[string - value]
      * @return	string
      */
-    public function param_field_value($value = null)
-    {
+    public function param_field_value($value = null) {
         return form_input(array(
-            'name' => 'field_value',
-            'value' => !empty($value) ? $value : 'name',
-            'type' => 'text'
-        ));
+                    'name' => 'field_value',
+                    'value' => !empty($value) ? $value : 'name',
+                    'type' => 'text'
+                ));
     }
 
     // --------------------------------------------------------------------------
@@ -500,8 +433,7 @@ class Field_choice_db {
      * @param	[string - value]
      * @return	string
      */
-    public function param_choice_where_params($value = null)
-    {
+    public function param_choice_where_params($value = null) {
         return array(
             'input' => form_textarea('choice_where_params', $value),
             'instructions' => $this->CI->lang->line('streams:choice_db.instructions_where_params')
@@ -517,8 +449,7 @@ class Field_choice_db {
      * @param	[string - value]
      * @return	string
      */
-    public function param_choice_type($value = null)
-    {
+    public function param_choice_type($value = null) {
         $choices = array(
             'dropdown' => $this->CI->lang->line('streams:choice_db.dropdown'),
             'multiselect' => $this->CI->lang->line('streams:choice_db.multiselect'),
@@ -538,8 +469,7 @@ class Field_choice_db {
      * @param	[string - value]
      * @return	string
      */
-    public function param_min_choices($value = null)
-    {
+    public function param_min_choices($value = null) {
         return array(
             'input' => form_input('min_choices', $value),
             'instructions' => $this->CI->lang->line('streams:choice_db.checkboxes_only')
@@ -555,8 +485,7 @@ class Field_choice_db {
      * @param	[string - value]
      * @return	string
      */
-    public function param_max_choices($value = null)
-    {
+    public function param_max_choices($value = null) {
         return array(
             'input' => form_input('max_choices', $value),
             'instructions' => $this->CI->lang->line('streams:choice_db.checkboxes_only')
@@ -574,38 +503,45 @@ class Field_choice_db {
      * @param	string - fied is required - yes or no
      * @return	array
      */
-    public function _choices_to_array($table_name, $field_key, $field_value, $where_params_raw = null, $type = 'dropdown', $is_required = 'no', $optgroups = true)
-    {
+    public function _choices_to_array($table_name, $field_key, $field_value, $where_params_raw = null, $type = 'dropdown', $is_required = 'no', $separator, $optgroups = true) {
+
         $choices = array();
         $ci = & get_instance();
 
-        if ($type == 'dropdown' and $is_required == 'no')
-        {
+        if ($type == 'dropdown' and $is_required == 'no') {
             $choices[null] = $ci->config->item('dropdown_choose_null');
         }
 
-        if (!empty($where_params_raw))
-        {
+        if (!empty($where_params_raw)) {
             $lines_where = explode("\n", $where_params_raw);
-		
-            foreach($lines_where as $line_where){
+
+            foreach ($lines_where as $line_where) {
                 $bits_where = explode(':', $line_where, 2);
                 $ci->db->where(trim($bits_where[0]), trim($bits_where[1]));
             }
         }
-        
-        
+        $order = $field_value;
+        if (is_array($field_value)) {
+            $order = $field_value[0];
+        }
 
-        $data = $ci->db->from($table_name)->get()->result();
+        $data = $ci->db->from($table_name)->order_by($order, "desc")->get()->result();
 
-        if (!empty($data))
-        {
+        if (!empty($data)) {
 
-            foreach ($data as $d)
-            {
-                $choices[$d->{$field_key}] = $d->{$field_value};
+            if (is_array($field_value)) {
+                foreach ($data as $d) {
+                    $value = '';
+                    foreach ($field_value as $field) {
+                        $value .= $d->{$field} . $separator;
+                    }
+                    $choices[$d->{$field_key}] = $value;
+                }
+            } else {
+                foreach ($data as $d) {
+                    $choices[$d->{$field_key}] = $d->{$field_value};
+                }
             }
-           
         }
 
 
@@ -618,23 +554,19 @@ class Field_choice_db {
         // TODO: Perhaps use this for
         // grouping checkboxes in the future?
         // -------------------------------
-        if ($optgroups)
-        {
+        if ($optgroups) {
 
-            if ($type == 'dropdown')
-            {
+            if ($type == 'dropdown') {
 
                 // Initialize
                 $optgroups = array();
                 $currentgroup = '';
 
                 // Loop and look
-                foreach ($choices as $key => $value)
-                {
+                foreach ($choices as $key => $value) {
 
                     // Is this an <optgroup> trigger?
-                    if (substr($key, 0, 1) == '*')
-                    {
+                    if (substr($key, 0, 1) == '*') {
 
                         // Sure is, set the current group
                         $currentgroup = substr($key, 1, -1);
@@ -642,19 +574,14 @@ class Field_choice_db {
                         // This is a trigger, so we're done.
                         // Continue to the next iteration.
                         continue;
-                    }
-                    else
-                    {
+                    } else {
 
                         // Nope, so is there a group yet?
-                        if ($currentgroup == '')
-                        {
+                        if ($currentgroup == '') {
 
                             // Dang, this won't be in an <optgroup>
                             $optgroups[$key] = $value;
-                        }
-                        else
-                        {
+                        } else {
 
                             // Yes! This will be in the current <optgroup>
                             $optgroups[$currentgroup][$key] = $value;
